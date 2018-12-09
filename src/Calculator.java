@@ -6,15 +6,17 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
 public class Calculator {
-    private JFrame frame;
     private JPanel buttonPanel;
-    private JTextArea textScreen;
+    private JTextField textScreen;
     private CalcButton[] numbers = new CalcButton[10];
     private CalcButton[] operations = new CalcButton[4];
     private CalcButton[] mod = new CalcButton[3];
     private CalcButton[] misc = new CalcButton[3];
     private double prev, val;
+    private String num;
     private String op;
+    private int dp; //Decimal places
+    private boolean positive;
 
     public static void main(String[] args) {
         Calculator calculator = new Calculator();
@@ -22,17 +24,22 @@ public class Calculator {
     }
 
     private void initialize() {
+        JFrame frame;
         prev = 0;
         val = 0;
+        dp = -1;
+        num = "0";
         op = null;
+        positive = true;
         frame = new JFrame("Calculator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        textScreen = new JTextArea(1, 1);
+        textScreen = new JTextField();
         textScreen.setPreferredSize(new Dimension(300, 100));
-        textScreen.setLineWrap(true);
         textScreen.setEditable(false);
-        textScreen.setFont(new Font("Arial", Font.PLAIN, 30));
+        textScreen.setFont(new Font("Arial", Font.PLAIN, 40));
+        textScreen.setText(num);
+        textScreen.setHorizontalAlignment(SwingConstants.RIGHT);
 
         buttonPanel = new JPanel();
         buttonPanel.setPreferredSize(new Dimension(300, 400));
@@ -54,11 +61,15 @@ public class Calculator {
             button.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    val = val * 10 + Double.valueOf(button.getText());
-                    if (val == (long) val)
-                        textScreen.setText(String.format("%d", (long) val));
+                    if (num.equals("0"))
+                        num = button.getText();
                     else
-                        textScreen.setText(String.format("%f", val));
+                        num += button.getText();
+
+                    val = Double.valueOf(num);
+                    textScreen.setText(num);
+                    if(dp >= 0)
+                        dp++;
                 }
             });
         }
@@ -71,11 +82,42 @@ public class Calculator {
                         prev = evaluate(prev, val, "+");
                     else
                         prev = evaluate(prev, val, op);
+                    num = "";
                     val = 0;
                     op = button.getText();
                 }
             });
         }
+
+        //Plus-Minus Button
+        mod[0].addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(val != 0) {
+                    if (positive) {
+                        num = "-" + num;
+                        val = 0 - val;
+                        textScreen.setText(num);
+                    } else {
+                        num = num.substring(1);
+                        val = 0 - val;
+                        textScreen.setText(num);
+                    }
+                    positive = !positive;
+                }
+            }
+        });
+
+        //Dot Button
+        mod[1].addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(dp < 0){
+                    num += ".";
+                    dp = 0;
+                }
+            }
+        });
 
         //Equal Button
         mod[2].addActionListener(new ActionListener() {
@@ -93,17 +135,61 @@ public class Calculator {
                     textScreen.setText(String.format("%f", prev));
             }
         });
+
+        //Clear Button
+        misc[0].addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                prev = 0;
+                val = 0;
+                dp = -1;
+                num = "0";
+                op = null;
+                textScreen.setText(num);
+            }
+        });
+
+        //ClearEntry Button
+        misc[1].addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                num = "0";
+                val = 0;
+                dp = -1;
+                textScreen.setText(num);
+            }
+        });
+
+        //Delete Button
+        misc[2].addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                num = num.substring(0, num.length() - 1);
+
+                if(dp > 0)
+                    dp--;
+                if(dp==0)
+                    num = num.substring(0, num.length() - 1);
+
+                val = Double.valueOf(num);
+                textScreen.setText(num);
+
+            }
+        });
     }
 
     private double evaluate(double prev, double val, String op) {
-        if (op.equals("+")) {
-            return prev + val;
-        } else if (op.equals("-")) {
-            return prev - val;
-        } else if (op.equals("\u00D7")) {
-            return prev * val;
-        } else {
-            return prev / val;
+        switch(op){
+            case "+":
+                return prev + val;
+            case "-":
+                return prev - val;
+            case "\u00D7":
+                return prev * val;
+            case "\u00F7":
+                return prev / val;
+            default:
+                return 0;
         }
     }
 
@@ -113,16 +199,16 @@ public class Calculator {
 
         operations[0] = new CalcButton("+");
         operations[1] = new CalcButton("-");
-        operations[2] = new CalcButton("\u00D7");
-        operations[3] = new CalcButton("\u00F7");
+        operations[2] = new CalcButton("\u00D7"); //Multiply
+        operations[3] = new CalcButton("\u00F7"); //Division
 
-        mod[0] = new CalcButton("\u00B1");
+        mod[0] = new CalcButton("\u00B1"); //Plus-minus
         mod[1] = new CalcButton(".");
         mod[2] = new CalcButton("=");
 
         misc[0] = new CalcButton("C");
         misc[1] = new CalcButton("CE");
-        misc[2] = new CalcButton("\u2190");
+        misc[2] = new CalcButton("\u2190"); //Delete
     }
 
     private void setButtonPanel() {
